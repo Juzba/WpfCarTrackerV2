@@ -1,5 +1,4 @@
 ﻿using CarsPriceXml.Components;
-using CarsPriceXml.Models;
 using Microsoft.Win32;
 using System.IO;
 using System.Windows;
@@ -11,7 +10,6 @@ namespace CarsPriceXml;
 public partial class MainWindow : Window
 {
     bool _isFileOpen = false;
-    List<CarPrice> _carPricesList = new();
     List<Car> _carList = new();
 
 
@@ -23,46 +21,26 @@ public partial class MainWindow : Window
 
     private void MainProg()
     {
-        _carPricesList = new();
-
 
         if (_isFileOpen && _carList.Count > 0)
         {
-            foreach (var car in _carList)
+
+            // "I used searching with LINQ methods with slight assistance from AI. :)
+
+            var cars = _carList
+            .GroupBy(p => p.Name)
+            .Select(g =>
+            new
             {
-                bool isCarInList = false;
+                Name = g.Key,
+                TotalPrice = g.Sum(p => Functions.SumCondition(this, p) ? p.Price : 0),
+                PriceWithDPH = g.Sum(p => Functions.DPHCalc(Functions.SumCondition(this, p) ? p.Price : 0, p.DPH))
+            }).ToList();
 
 
-                foreach (var item in _carPricesList)
-                    // if item is already in seznam _carPriceList
-                    if (item.Name.Contains(car.Name))
-                    {
-                        isCarInList = true;
-
-                        // sell on weekend, week or evrything
-                        if (Functions.SumCondition(this, car))
-                        {
-                            item.Price += car.Price;
-                            item.PriceWithDPH += Functions.DPHCalc(car.Price, car.DPH);
-                        }
-                        break;
-                    }
-
-
-                if (isCarInList) continue;
-                else
-                {
-                    // car not exist in carPricesList -> Creating new car in list
-                    if (Functions.SumCondition(this, car))
-                        _carPricesList.Add(new CarPrice(car.Name, car.Price, Functions.DPHCalc(car.Price, car.DPH)));
-                    else
-                        // car name is created with zero price.
-                        _carPricesList.Add(new CarPrice(car.Name, 0, 0));
-                }
-            }
 
             DataGridInput.ItemsSource = _carList;
-            DataGridResult.ItemsSource = _carPricesList;
+            DataGridResult.ItemsSource = cars;
             Functions.AddMessage(this, "Výpočet hotov.");
         }
     }
